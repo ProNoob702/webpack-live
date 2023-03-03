@@ -8,7 +8,6 @@ const isDev = () => process.env.NODE_ENV != "production";
 const _isDev = isDev();
 
 const getPath = (...args) => path.resolve(process.cwd(), ...args);
-exports.getPath = getPath;
 
 //#region =============== FRONTEND ===============
 
@@ -71,7 +70,7 @@ const frontendConfig = {
   devtool: "source-map",
   entry: [
     "@babel/polyfill", // enables async-await
-    "./client/index.js",
+    path.resolve(__dirname, "src/client/index.js"),
   ],
   output: {
     // filename: "bundle.js",
@@ -129,7 +128,6 @@ const getBackendModuleRules = () => {
       exclude: /node_modules/,
       use: "ignore-loader",
     },
-    ,
     {
       test: /\.(png|svg|jpg|jpeg|gif|woff|woff2|eot|ttf)$/i,
       type: "asset/resource",
