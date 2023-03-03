@@ -4,7 +4,7 @@
   "description": "",
   "scripts": {
     "server-run": "nodemon ./dist/index.js",
-    "frontend-run": "webpack --watch",
+    "serve": "webpack serve --open",
     "dev": "npm-run-all server-run frontend-run"
   },
   "dependencies": {

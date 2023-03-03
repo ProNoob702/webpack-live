@@ -1,3 +1,4 @@
+const webpack = require("webpack");
 const path = require("path");
 const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 const DotenvPlugin = require("dotenv-webpack");
@@ -13,6 +14,7 @@ const getPath = (...args) => path.resolve(process.cwd(), ...args);
 
 const getFrontendPlugins = () => {
   const plugins = [
+    new webpack.EnvironmentPlugin({ ...process.env }),
     new LoadablePlugin({ filename: "stats.json", writeToDisk: true }),
     new MiniCssExtractPlugin({
       filename: "[name].css",
@@ -83,22 +85,18 @@ const frontendConfig = {
     rules: getFrontendModuleRules(),
   },
   devServer: {
-    contentBase: path.join(__dirname, "/public"), // serve your static files from here
-    watchContentBase: true, // initiate a page refresh if static content changes
+    static: {
+      directory: path.join(__dirname, "dist"),
+    },
     proxy: [
       // allows redirect of requests to webpack-dev-server to another destination
       {
         context: ["/api", "/auth"], // can have multiple
-        target: "http://localhost:8080", // server and port to redirect to
+        target: `http://localhost:${process.env.SERVER_PORT}`,
         secure: false,
       },
     ],
-    port: 3030, // port webpack-dev-server listens to, defaults to 8080
-    overlay: {
-      // Shows a full-screen overlay in the browser when there are compiler errors or warnings
-      warnings: false, // defaults to false
-      errors: false, // defaults to false
-    },
+    port: process.env.CLIENT_PORT,
   },
   resolve: {
     modules: ["node_modules"],
@@ -111,7 +109,7 @@ const frontendConfig = {
 //#region =============== Backend ===============
 
 const getBackendPlugins = () => {
-  const plugins = [new DotenvPlugin()];
+  const plugins = [new webpack.EnvironmentPlugin({ ...process.env }), new DotenvPlugin()];
   return plugins;
 };
 
