@@ -1,7 +1,6 @@
 import React from "react";
 import App from "./app";
 import "./index.scss";
+import { hydrateRoot } from "react-dom/client";
 
-const root = createRoot(document.getElementById("root"));
-
-root.render(<App />);
+hydrateRoot(document.querySelector("#root"), <App />);

@@ -10,11 +10,7 @@ import App from "../client/app";
  * Don't add whitespace around component in the mountpoint, otherwise a warning
  * appears about a mismatch of content.
  */
-function handleRender(initialData) {
-  const { username, title, description } = initialData;
-
-  const component = ReactDOMServer.renderToString(<App username={username} title={title} description={description} />);
-
+function handleRender(nodeAsHtmlStr) {
   return `
     <!DOCTYPE html>
     <html lang="en">
@@ -22,39 +18,12 @@ function handleRender(initialData) {
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <meta http-equiv="X-UA-Compatible" content="IE=edge">
-
-      <title>${title}</title>
-      <meta name="description" content="${description}">
-
-      <style>
-        body {
-          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",
-            "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
-            sans-serif;
-          -webkit-font-smoothing: antialiased;
-          -moz-osx-font-smoothing: grayscale;
-
-          text-align: center;
-
-          /* Background color to go to page edge. */
-          margin: 0;
-        }
-
-        body > * {
-          padding-left: 15px;
-          padding-right: 15px;
-        }
-      </style>
-
-      <script>
-        window.__INITIAL__DATA__ = ${JSON.stringify(initialData)};
-      </script>
+      <title>Houma</title>
       <link rel="stylesheet" href="main.css">
     </head>
 
     <body>
-      <div id="root">${component}</div>
-      <script defer src="main.js"></script>
+      <div id="root">${nodeAsHtmlStr}</div>
     </body>
   </html>
   `;
@@ -68,7 +37,12 @@ app.get("/", (_req, res) => {
     title: "React SSR Quickstart",
     description: "Starter template for server-side and client-side rendering of a React app",
   };
-  const finalHtml = handleRender(initialData);
+
+  const nodeAsHtmlStr = ReactDOMServer.renderToString(
+    <App username={initialData.username} title={initialData.title} description={initialData.description} />
+  );
+
+  const finalHtml = handleRender(nodeAsHtmlStr);
   res.set("content-type", "text/html");
   res.send(finalHtml);
 });
