@@ -10,7 +10,7 @@ import App from "../client/app";
  * Don't add whitespace around component in the mountpoint, otherwise a warning
  * appears about a mismatch of content.
  */
-function page(initialData) {
+function handleRender(initialData) {
   const { username, title, description } = initialData;
 
   const component = ReactDOMServer.renderToString(<App username={username} title={title} description={description} />);
@@ -49,12 +49,12 @@ function page(initialData) {
       <script>
         window.__INITIAL__DATA__ = ${JSON.stringify(initialData)};
       </script>
-
-      <script defer src="/static/main.js"></script>
+      <link rel="stylesheet" href="main.css">
     </head>
 
     <body>
       <div id="root">${component}</div>
+      <script defer src="main.js"></script>
     </body>
   </html>
   `;
@@ -64,18 +64,23 @@ const app = express();
 
 app.get("/", (_req, res) => {
   const initialData = {
-    username: "developer",
+    username: "shit",
     title: "React SSR Quickstart",
     description: "Starter template for server-side and client-side rendering of a React app",
   };
-
-  const html = page(initialData);
-  res.send(html);
+  const finalHtml = handleRender(initialData);
+  res.set("content-type", "text/html");
+  res.send(finalHtml);
 });
 
-const publicDir = path.resolve(__dirname, "public");
-app.use("/static", express.static(publicDir));
+// const publicDir = path.resolve(__dirname, "/public");
+// app.use("/static", express.static(publicDir));
+
+// serve public as static files
+app.use(express.static(path.join(__dirname, "../../dist/public")));
 
 const port = process.env.SERVER_PORT || 8080;
 
-app.listen(port);
+app.listen(port, () => {
+  console.log(`Listening on port: ${port}`);
+});
