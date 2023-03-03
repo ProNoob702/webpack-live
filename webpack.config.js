@@ -2,6 +2,7 @@ const path = require("path");
 const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 const DotenvPlugin = require("dotenv-webpack");
 const LoadablePlugin = require("@loadable/webpack-plugin");
+const nodeExternals = require("webpack-node-externals");
 
 const isDev = () => process.env.NODE_ENV != "production";
 const _isDev = isDev();
@@ -9,7 +10,9 @@ const _isDev = isDev();
 const getPath = (...args) => path.resolve(process.cwd(), ...args);
 exports.getPath = getPath;
 
-const getPlugins = () => {
+//#region =============== FRONTEND ===============
+
+const getFrontendPlugins = () => {
   const plugins = [
     new LoadablePlugin({ filename: "stats.json", writeToDisk: true }),
     new MiniCssExtractPlugin({
@@ -41,7 +44,7 @@ const getStyleLoaders = () => {
   return loaders;
 };
 
-const getModuleRules = () => {
+const getFrontendModuleRules = () => {
   return [
     {
       test: /\.(js|jsx|ts|tsx)?$/,
@@ -62,7 +65,8 @@ const getModuleRules = () => {
   ];
 };
 
-module.exports = {
+const frontendConfig = {
+  target: "web",
   mode: isDev ? "development" : "production",
   devtool: "source-map",
   entry: [
@@ -70,12 +74,13 @@ module.exports = {
     "./client/index.js",
   ],
   output: {
-    path: path.join(__dirname, "/public"),
-    filename: "bundle.js", // relative to the outputPath (defaults to / or root of the site)
+    // filename: "bundle.js",
+    path: path.resolve(__dirname, "dist/public"),
+    filename: "[name]",
   },
-  plugins: getPlugins(),
+  plugins: getFrontendPlugins(),
   module: {
-    rules: getModuleRules(),
+    rules: getFrontendModuleRules(),
   },
   devServer: {
     contentBase: path.join(__dirname, "/public"), // serve your static files from here
@@ -95,4 +100,68 @@ module.exports = {
       errors: false, // defaults to false
     },
   },
+  resolve: {
+    modules: ["node_modules"],
+    extensions: ["*", ".ts", ".tsx", ".js", ".jsx"],
+  },
 };
+
+//#endregion =============== / FRONTEND ===============
+
+//#region =============== Backend ===============
+
+const getBackendPlugins = () => {
+  const plugins = [new DotenvPlugin()];
+  return plugins;
+};
+
+const getBackendModuleRules = () => {
+  return [
+    {
+      test: /\.(js|jsx|ts|tsx)?$/,
+      exclude: /node_modules/,
+      use: {
+        loader: "babel-loader",
+      },
+    },
+    {
+      test: /\.(s(a|c)ss)$/,
+      exclude: /node_modules/,
+      use: "ignore-loader",
+    },
+    ,
+    {
+      test: /\.(png|svg|jpg|jpeg|gif|woff|woff2|eot|ttf)$/i,
+      type: "asset/resource",
+    },
+  ];
+};
+
+const backendConfig = {
+  target: "node",
+  mode: isDev ? "development" : "production",
+  node: {
+    __dirname: true,
+    __filename: true,
+  },
+  externals: [nodeExternals()],
+  entry: {
+    main: getPath("src/server/index.js"),
+  },
+  output: {
+    path: getPath("dist"),
+    filename: "index.js",
+  },
+  plugins: getBackendPlugins(),
+  module: {
+    rules: getBackendModuleRules(),
+  },
+  resolve: {
+    modules: ["node_modules"],
+    extensions: ["*", ".ts", ".tsx", ".js", ".jsx"],
+  },
+};
+
+//#endregion =============== / Backend ===============
+
+module.exports = [backendConfig, frontendConfig];
