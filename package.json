@@ -3,9 +3,14 @@
   "version": "1.0.0",
   "description": "",
   "scripts": {
+    "prebuild": "shx rm -rf dist",
+    "dev-build": "npm-run-all prebuild webpack --watch",
     "server-run": "nodemon ./dist/index.js",
-    "frontend-run": "webpack --watch",
-    "dev": "npm-run-all server-run frontend-run"
+    "dev": "npm-run-all server-run dev-build",
+    "build-client-prod": "cross-env NODE_ENV=production webpack",
+    "build-server-prod": "cross-env NODE_ENV=production webpack",
+    "build": "npm-run-all prebuild build-server-prod build-client-prod",
+    "start": "node dist/index.js"
   },
   "dependencies": {
     "@loadable/component": "^5.15.3",

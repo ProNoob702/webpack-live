@@ -3,6 +3,8 @@ const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 const DotenvPlugin = require("dotenv-webpack");
 const LoadablePlugin = require("@loadable/webpack-plugin");
 const nodeExternals = require("webpack-node-externals");
+const TerserPlugin = require("terser-webpack-plugin");
+const CssMinimizerPlugin = require("css-minimizer-webpack-plugin");
 
 const isDev = () => process.env.NODE_ENV != "production";
 const _isDev = isDev();
@@ -10,6 +12,59 @@ const _isDev = isDev();
 const getPath = (...args) => path.resolve(process.cwd(), ...args);
 
 //#region =============== FRONTEND ===============
+
+const getFrontendMinimizers = () => {
+  return [
+    new TerserPlugin({
+      parallel: true,
+      extractComments: false,
+      minify: TerserPlugin.uglifyJsMinify,
+      terserOptions: {
+        compress: {
+          drop_console: true,
+        },
+        mangle: true,
+      },
+    }),
+    new CssMinimizerPlugin({
+      minimizerOptions: {
+        preset: [
+          "default",
+          {
+            discardComments: { removeAll: true },
+          },
+        ],
+      },
+    }),
+  ];
+};
+
+const getFrontendOptimization = () => {
+  if (_isDev) return undefined;
+  return {
+    minimize: true,
+    minimizer: getFrontendMinimizers(),
+    splitChunks: {
+      chunks: "all",
+      enforceSizeThreshold: 50000,
+      cacheGroups: {
+        defaultVendors: {
+          test: /[\\/]node_modules[\\/]/,
+          priority: -10,
+          reuseExistingChunk: true,
+        },
+        default: {
+          minChunks: 2,
+          priority: -20,
+          reuseExistingChunk: true,
+        },
+      },
+    },
+    runtimeChunk: {
+      name: (entrypoint) => `runtime-${entrypoint.name}`,
+    },
+  };
+};
 
 const getFrontendPlugins = () => {
   const plugins = [
@@ -66,7 +121,8 @@ const getFrontendModuleRules = () => {
 
 const frontendConfig = {
   target: "web",
-  mode: isDev ? "development" : "production",
+  mode: _isDev ? "development" : "production",
+  devtool: _isDev ? "cheap-module-source-map" : false,
   devtool: "source-map",
   entry: [
     "@babel/polyfill", // enables async-await
@@ -82,24 +138,7 @@ const frontendConfig = {
   module: {
     rules: getFrontendModuleRules(),
   },
-  devServer: {
-    contentBase: path.join(__dirname, "/public"), // serve your static files from here
-    watchContentBase: true, // initiate a page refresh if static content changes
-    proxy: [
-      // allows redirect of requests to webpack-dev-server to another destination
-      {
-        context: ["/api", "/auth"], // can have multiple
-        target: "http://localhost:8080", // server and port to redirect to
-        secure: false,
-      },
-    ],
-    port: 3030, // port webpack-dev-server listens to, defaults to 8080
-    overlay: {
-      // Shows a full-screen overlay in the browser when there are compiler errors or warnings
-      warnings: false, // defaults to false
-      errors: false, // defaults to false
-    },
-  },
+  optimization: getFrontendOptimization(),
   resolve: {
     modules: ["node_modules"],
     extensions: ["*", ".ts", ".tsx", ".js", ".jsx"],
@@ -109,6 +148,26 @@ const frontendConfig = {
 //#endregion =============== / FRONTEND ===============
 
 //#region =============== Backend ===============
+
+const getBackendOptimization = () => {
+  if (_isDev) return undefined;
+  return {
+    minimize: true,
+    minimizer: [
+      new TerserPlugin({
+        parallel: true,
+        extractComments: false,
+        minify: TerserPlugin.uglifyJsMinify,
+        terserOptions: {
+          compress: {
+            drop_console: true,
+          },
+          mangle: true,
+        },
+      }),
+    ],
+  };
+};
 
 const getBackendPlugins = () => {
   const plugins = [new DotenvPlugin()];
@@ -138,7 +197,8 @@ const getBackendModuleRules = () => {
 
 const backendConfig = {
   target: "node",
-  mode: isDev ? "development" : "production",
+  mode: _isDev ? "development" : "production",
+  devtool: _isDev ? "cheap-module-source-map" : false,
   node: {
     __dirname: true,
     __filename: true,
@@ -159,6 +219,7 @@ const backendConfig = {
     modules: ["node_modules"],
     extensions: ["*", ".ts", ".tsx", ".js", ".jsx"],
   },
+  optimization: getBackendOptimization(),
 };
 
 //#endregion =============== / Backend ===============
