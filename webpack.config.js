@@ -76,6 +76,7 @@ const frontendConfig = {
     // filename: "bundle.js",
     path: path.resolve(__dirname, "dist/public"),
     filename: _isDev ? "[name].js" : "[name].[contenthash:8].js",
+    publicPath: "/",
   },
   plugins: getFrontendPlugins(),
   module: {

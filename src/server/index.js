@@ -3,31 +3,7 @@ import path from "path";
 import React from "react";
 import ReactDOMServer from "react-dom/server";
 import App from "../client/app";
-
-/**
- * Render an HTML page as a string.
- *
- * Don't add whitespace around component in the mountpoint, otherwise a warning
- * appears about a mismatch of content.
- */
-function handleRender(nodeAsHtmlStr) {
-  return `
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-      <meta charset="utf-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <meta http-equiv="X-UA-Compatible" content="IE=edge">
-      <title>Houma</title>
-      <link rel="stylesheet" href="main.css">
-    </head>
-
-    <body>
-      <div id="root">${nodeAsHtmlStr}</div>
-    </body>
-  </html>
-  `;
-}
+import { ChunkExtractor } from "@loadable/server";
 
 const app = express();
 
@@ -38,17 +14,38 @@ app.get("/", (_req, res) => {
     description: "Starter template for server-side and client-side rendering of a React app",
   };
 
-  const nodeAsHtmlStr = ReactDOMServer.renderToString(
-    <App username={initialData.username} title={initialData.title} description={initialData.description} />
-  );
-
-  const finalHtml = handleRender(nodeAsHtmlStr);
+  const statsFile = path.resolve(process.cwd(), "dist/public/stats.json");
+  const extractor = new ChunkExtractor({ statsFile });
+  const node = <App username={initialData.username} title={initialData.title} description={initialData.description} />;
+  const jsx = extractor.collectChunks(node);
+  const nodeAsHtmlStr = ReactDOMServer.renderToString(jsx);
+  const finalHtml = handleRender(nodeAsHtmlStr, extractor, initialData);
   res.set("content-type", "text/html");
   res.send(finalHtml);
 });
 
-// const publicDir = path.resolve(__dirname, "/public");
-// app.use("/static", express.static(publicDir));
+function handleRender(nodeAsHtmlStr, extractor, initialData) {
+  return `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <meta http-equiv="X-UA-Compatible" content="IE=edge">
+      <title>Houma</title>
+      <link rel="stylesheet" href="main.css" />
+    </head>
+    <body>
+      <div id="root">${nodeAsHtmlStr}</div>
+      <script>
+        window.__INITIAL__DATA__ = ${JSON.stringify(initialData)};
+      </script>
+      <!-- Insert bundled scripts into <script> tag -->
+      ${extractor.getScriptTags()}
+    </body>
+  </html>
+  `;
+}
 
 // serve public as static files
 app.use(express.static(path.join(__dirname, "../../dist/public")));
